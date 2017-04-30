@@ -17,7 +17,48 @@ class Classifier():
 class NaiveBayesClassifier(Classifier):
 
     def __init__(self, data_with_labels):
-        pass
+        # If we have no data, we don't know anything about the features.
+        assert len(data_with_labels) > 0
+
+        self.min_probability = 0.5
+
+        # This is a list of maps. Each entry in the list for the given feature
+        # and the map gives the probabilty of the feature's value given the
+        # different values of the label.
+        self.feature_probabilties = {}
+
+        # This is in the same format as above, but is the counts instead of
+        # probabilities.
+        self.feature_counts = {}
+
+        for feat_num in {0 ... len(data_with_labels[0][1]) - 1}:
+            # Count how many times each value of the feature has shown up for
+            # each label.
+            self.feature_counts.append(dict())
+            feature_map = self.feature_counts[feat_num]
+            for data in data_with_labels:
+                label = data[0]
+                feature = data[1][feat_num]
+                if feature_map.get(label) == None:
+                    feature_map[label] = dict()
+                if feature_map.get(label).get(feature) == None:
+                    feature_map[label][feature] = 0
+                feature_map[label][feature] += 1
+
+            # Convert counts to probabilities.
+            self.feature_probabilities.append(dict())
+            prob_map = self.feature_probabilities[feat_num]
+            for label, value_map in feature_map.iteritems():
+                prod_map[label] = dict()
+                total_count = 0
+                for value, count in value_map.iteritems():
+                    total_count += count
+                for value, count in value_map.iteritems():
+                    probability = float(count)/total_count
+                    prob_map[label][value] = probability
+                    if probability / 2 < self.min_probability:
+                        self.min_probability = probability / 2
+
 
     def classifyData(self, data):
         pass
