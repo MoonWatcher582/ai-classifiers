@@ -21,18 +21,18 @@ class NaiveBayesClassifier(Classifier):
         assert len(data_with_labels) > 0
 
         self.min_probability = 0.5
-        self.labels = {}
+        self.labels = []
 
         # This is a list of maps. Each entry in the list for the given feature
         # and the map gives the probabilty of the feature's value given the
         # different values of the label.
-        self.feature_probabilties = {}
+        self.feature_probabilities = []
 
         # This is in the same format as above, but is the counts instead of
         # probabilities.
-        self.feature_counts = {}
+        self.feature_counts = []
 
-        for feat_num in {0 ... len(data_with_labels[0][1]) - 1}:
+        for feat_num in range(0, len(data_with_labels[0][1])):
             # Count how many times each value of the feature has shown up for
             # each label.
             self.feature_counts.append(dict())
@@ -51,7 +51,7 @@ class NaiveBayesClassifier(Classifier):
             prob_map = self.feature_probabilities[feat_num]
             for label, value_map in feature_map.iteritems():
                 self.labels.append(label)
-                prod_map[label] = dict()
+                prob_map[label] = dict()
                 total_count = 0
                 for value, count in value_map.iteritems():
                     total_count += count
@@ -63,17 +63,18 @@ class NaiveBayesClassifier(Classifier):
 
 
     def classifyData(self, data):
-        probabilties = {}
+        probabilities = []
         for label in self.labels:
             # Calculate the probabilty of each label given the observed
             # features.
             label_prob = 1
+            feat_num = 0
             for feature in data:
-                feature_prob =
-                    self.feature_probabilties.get(label).get(feature)
+                feature_prob = self.feature_probabilities[feat_num].get(label).get(feature)
                 if feature_prob == None:
                     feature_prob = self.min_probability
                 label_prob *= feature_prob
+                feat_num += 1
             probabilities.append(label_prob)
 
         # Return the label with the maximum probability.
@@ -84,7 +85,14 @@ def main():
     # TODO: Feature extraction here
     # TODO: Train classifier here.
     # TODO: Classify test data here.
-    pass
+    data_with_labels = [
+            (0, [0,0]),
+            (1, [1,1]),
+            (0, [1,1]),
+            (0, [0,2]),
+    ]
+    c = NaiveBayesClassifier(data_with_labels)
+    print c.classifyData([0,2])
 
 if __name__ == '__main__':
     main()
