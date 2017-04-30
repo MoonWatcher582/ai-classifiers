@@ -1,12 +1,15 @@
-from classifier import Classifier
 from itertools import izip
+
 import numpy as np
+
+from classifier import Classifier
+import utils
 
 class Perceptron(Classifier):
 
 	def __init__(self, data_with_labels):
 		self.data_points = None
-		self.weights = None
+		self.weight_set = {}
 		self.bias = 0
 
 		# Set of correct classifications for training set
@@ -18,19 +21,27 @@ class Perceptron(Classifier):
 		convergence = True
 		while True:
 			img_idx = 0
+			guesses = {}
+			best_guess = "" 
 			for image_features in self.image_matrix:
-				guess = np.sign(reduce(lambda a, (w, f): a + w*f, izip(self.weights, image_features), 0) + self.bias)
-				if guess == self.classification_set[img_idx]:
-					self.update(image_features, self.classification_set[img_idx])
+				for classification, weights in self.weight_set:
+					guesses[classification] = reduce(lambda a, (w, f): a + w*f, izip(weights, image_features), 0) + self.bias
+				best_guess = utils.selectBestGuess(guesses)
+				if best_guess != self.classification_set[img_idx]:
+					self.update(image_features, self.classification_set[img_idx], best_guess)
 					convergence = False
 				img_idx += 1
 			iterations += 1
 			if convergence or iterations > self.max_iterations:
 				break
 
-	def update(self, feature_set, image_classification):
-		for i in xrange(self.weights):
-			self.weights[i] += image_classification * feature_set[i]
+	def update(self, feature_set, correct_classification, incorrect_guess):
+		# Decrease the weights for the incorrect guess for this image's features
+		for i in range(len(self.weight_set[incorrect_guess])):
+			self.weights[i] += -1 * feature_set[i]
+		# Increase the weights for the correct classification for this image's features
+		for i in range(len(self.weight_set[correct_classification])):
+			self.weights[i] += feature_set[i]
 		self.bias += image_classification
 
 	def classifyData(self, data):
