@@ -21,6 +21,7 @@ class NaiveBayesClassifier(Classifier):
         assert len(data_with_labels) > 0
 
         self.min_probability = 0.5
+        self.labels = {}
 
         # This is a list of maps. Each entry in the list for the given feature
         # and the map gives the probabilty of the feature's value given the
@@ -49,6 +50,7 @@ class NaiveBayesClassifier(Classifier):
             self.feature_probabilities.append(dict())
             prob_map = self.feature_probabilities[feat_num]
             for label, value_map in feature_map.iteritems():
+                self.labels.append(label)
                 prod_map[label] = dict()
                 total_count = 0
                 for value, count in value_map.iteritems():
@@ -61,7 +63,21 @@ class NaiveBayesClassifier(Classifier):
 
 
     def classifyData(self, data):
-        pass
+        probabilties = {}
+        for label in self.labels:
+            # Calculate the probabilty of each label given the observed
+            # features.
+            label_prob = 1
+            for feature in data:
+                feature_prob =
+                    self.feature_probabilties.get(label).get(feature)
+                if feature_prob == None:
+                    feature_prob = self.min_probability
+                label_prob *= feature_prob
+            probabilities.append(label_prob)
+
+        # Return the label with the maximum probability.
+        return self.labels[probabilities.index(max(probabilities))]
 
 
 def main():
