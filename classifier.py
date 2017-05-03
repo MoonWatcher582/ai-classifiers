@@ -1,5 +1,9 @@
+from collections import Counter
+from itertools import izip
 import operator
 import random
+
+import numpy as np
 
 # An interface for all classifiers to implement.
 class Classifier():
@@ -108,7 +112,6 @@ class RandomForestClassifier(Classifier):
         self.decision_trees.append(t1)
 
 
-
     def classifyData(self, data):
         # Check through each decision tree to get a value, and pick the mode of
         # the values returned.
@@ -140,23 +143,127 @@ class RandomForestClassifier(Classifier):
         return max(decisions.iteritems(), key=operator.itemgetter(1))[0]
 
 
+class Perceptron(Classifier):
+
+    # main function will convert data_with_labels from a set of 
+    # ndarrays to a list of (label, python list of features) tuples
+    def __init__(self, data_with_labels):
+        assert len(data_with_labels) > 0
+
+        self.max_iterations = 50
+
+        self.training_set = data_with_labels
+        self.labels = set([label for label, features in data_with_labels])
+		
+        # Initialize weights and biases
+        feature_size = len(data_with_labels[0][1])
+        self.weight_set = {}
+        self.bias = {}
+        for label in self.labels:
+            self.weight_set[label] = [0 for i in range(feature_size)]
+            self.bias[label] = 0
+
+        iterations = 0
+        convergence = True
+        while True:
+            best_guess = "" 
+            for image_label, image_features in self.training_set:
+                best_guess = self.guessClassification(image_features) 
+                if best_guess != image_label:
+                    self.update(image_features, image_label, best_guess)
+                    convergence = False
+            iterations += 1
+            if convergence or iterations > self.max_iterations:
+                break
+
+
+    def classifyData(self, data):
+        return self.guessClassification(data) 
+
+
+    def guessClassification(self, features):
+        guesses = {}
+        for label in self.weight_set:
+            weights = self.weight_set[label]
+            bias = self.bias[label]
+            guesses[label] = reduce(lambda a, (w, f): a + w*f, izip(weights, features), 0) + bias
+        return self.selectBestGuess(guesses)
+
+
+    def update(self, feature_set, correct_label, incorrect_guess):
+        # Decrease the weights for the incorrect guess for this image's features
+        for i in range(len(self.weight_set[incorrect_guess])):
+            self.weight_set[incorrect_guess][i] += -1 * feature_set[i]
+        self.bias[incorrect_guess] += -1
+        # Increase the weights for the correct classification for this image's
+        # features
+        for i in range(len(self.weight_set[correct_label])):
+            self.weight_set[correct_label][i] += feature_set[i]
+        self.bias[correct_label] += 1
+
+
+    def selectBestGuess(self, d):
+        v = list(d.values())
+        k = list(d.keys())
+        return k[v.index(max(v))]
+
+
+class KNearestNeighbors(Classifier):
+
+    def __init__(self, data_with_labels):
+        self.k = 3
+        assert len(data_with_labels) > self.k
+
+        self.label_set = [label for label, features in data_with_labels]
+        self.feature_set = [features for label, features in data_with_labels]
+
+        self.label_types = set(self.label_set)
+
+
+    def classifyData(self, data):
+        # Subtract training data from the data, pairwise
+        dx = [np.subtract(data, train) for train in self.feature_set]
+        # Compute square sum for each difference vector
+        ssd = [reduce(lambda a, i: a + i**2, x, 0) for x in dx]
+        # Select the label with most represented by the k-min values
+        k_smallest = self.selectKSmallest(ssd)
+        # return the label that appears the most  
+        count = Counter(k_smallest)
+        return count.most_common(1)[0][0]
+
+
+    def selectKSmallest(self, values):
+        # Return the labels with same indicies as the k smallest values 
+        A = np.array(values)
+        indicies = np.argpartition(A, self.k)
+        return [self.label_set[i] for i in indicies]
+
 def main():
     # TODO: Feature extraction here
     # TODO: Train classifier here.
     # TODO: Classify test data here.
     data_with_labels = [
             (0, [0,0]),
-            (1, [1,1]),
+            (1, [2,2]),
             (0, [1,1]),
             (0, [0,2]),
+				(1, [2,3]),
     ]
     c = NaiveBayesClassifier(data_with_labels)
+    print c.classifyData([0,2])
+
+    c = Perceptron(data_with_labels)
+    print c.classifyData([0,2])
+
+    c = KNearestNeighbors(data_with_labels)
     print c.classifyData([0,2])
 
     # Simple random forest test.
     c = RandomForestClassifier(None)
     for i in range(0, 10):
         print c.classifyData([0, 0])
+
+	
 
 if __name__ == '__main__':
     main()
