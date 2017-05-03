@@ -1,3 +1,6 @@
+import operator
+import random
+
 # An interface for all classifiers to implement.
 class Classifier():
 
@@ -81,6 +84,62 @@ class NaiveBayesClassifier(Classifier):
         return self.labels[probabilities.index(max(probabilities))]
 
 
+class RandomForestClassifier(Classifier):
+
+    class DecisionTree:
+        def __init__(self, feat_num):
+            self.labels = []
+            self.feature = feat_num
+            self.children = dict()
+
+    def __init__(self, data_with_labels):
+        random.seed()
+        self.decision_trees = []
+
+        t2 = self.DecisionTree(1)
+        t2.children[0] = self.DecisionTree(2)
+        t2.children[0].labels.append(("foo", 0.5))
+        t2.children[0].labels.append(("bar", 0.5))
+        self.decision_trees.append(t2)
+
+        t1 = self.DecisionTree(0)
+        t1.children[0] = self.DecisionTree(1)
+        t1.children[0].labels.append(("baz", 1.0))
+        self.decision_trees.append(t1)
+
+
+
+    def classifyData(self, data):
+        # Check through each decision tree to get a value, and pick the mode of
+        # the values returned.
+        decisions = dict()
+        for tree in self.decision_trees:
+            for i in range (0, len(data)):
+                assert tree.feature >= i
+                if tree.feature < i:
+                    continue
+                tree = tree.children.get(data[i])
+                if tree == None:
+                    break
+                if len(tree.labels) > 0:
+                    break
+            if tree == None or len(tree.labels) == 0:
+                continue
+            r = random.random()
+            i = 1.0
+            label = None
+            for tup in tree.labels:
+                i -= tup[1]
+                if i <= r:
+                    label = tup[0]
+                    break
+            if decisions.get(label) == None:
+                decisions[label] = 0
+            decisions[label] += 1
+
+        return max(decisions.iteritems(), key=operator.itemgetter(1))[0]
+
+
 def main():
     # TODO: Feature extraction here
     # TODO: Train classifier here.
@@ -93,6 +152,11 @@ def main():
     ]
     c = NaiveBayesClassifier(data_with_labels)
     print c.classifyData([0,2])
+
+    # Simple random forest test.
+    c = RandomForestClassifier(None)
+    for i in range(0, 10):
+        print c.classifyData([0, 0])
 
 if __name__ == '__main__':
     main()
