@@ -23,7 +23,7 @@ class Image(object):
 	def get_feature(self):
 		return self.image_resize if self.image_set in "facedata" else self.hog_image
 
-	def get_hog_image(self):
+	def generate_hog_image(self):
 		# Resize the image by 400% with bicubic interpolation for better features
 		self.image_resize = imresize(self.image, 400, interp='bicubic')
 		fd, self.hog_image = hog(self.image_resize, visualise=True)
@@ -76,6 +76,10 @@ class ImageSet(object):
 			"digitdata": digit_dim,
 		}.get(self.directory, (0, 0))
 
+	def generate_vector_set(self):
+		for img in self.get_images():
+			yield np.ravel(img.get_feature(), order='F')
+
 	def create_transpose_of_vectorized_images(self):
 		self.images_matrix = np.ndarray(shape=(len(self), self.lenX*self.lenY*(4**2)))
 		idx = 0
@@ -101,7 +105,7 @@ def main():
 	print "File is %s/%s, whose images are %s by %s" % (image_set.directory, image_set.file_name, str(image_set.lenX), str(image_set.lenY), )
 	for img in image_set.extract_image():
 		print "Extracting HOG features"
-		img.get_hog_image()
+		img.generate_hog_image()
 		image_set.add_image(img)
 
 		if len(sys.argv) == 4 and sys.argv[3] == "visualize":
