@@ -1,5 +1,7 @@
 from collections import Counter
 from itertools import izip
+
+import math
 import operator
 import random
 
@@ -88,8 +90,11 @@ class NaiveBayesClassifier(Classifier):
         return self.labels[probabilities.index(max(probabilities))]
 
 
+# A random forest classifier.
 class RandomForestClassifier(Classifier):
 
+    # DecisionTree is a single decision tree node. It's children are contained
+    # in a dictionary keyed by the feature value.
     class DecisionTree:
         def __init__(self, feat_num):
             self.labels = []
@@ -100,17 +105,42 @@ class RandomForestClassifier(Classifier):
         random.seed()
         self.decision_trees = []
 
-        t2 = self.DecisionTree(1)
-        t2.children[0] = self.DecisionTree(2)
-        t2.children[0].labels.append(("foo", 0.5))
-        t2.children[0].labels.append(("bar", 0.5))
-        self.decision_trees.append(t2)
+        assert len(data_with_labels) > 0
 
-        t1 = self.DecisionTree(0)
-        t1.children[0] = self.DecisionTree(1)
-        t1.children[0].labels.append(("baz", 1.0))
-        self.decision_trees.append(t1)
+        num_trees = int(math.sqrt(len(data_with_labels[0][1])))
+        for i in range(0, num_trees):
+            tree = self.DecisionTree(0)
+            feature_set = set()
+            while len(feature_set) < num_trees:
+                feature_set.add(random.randint(0,
+                    len(data_with_labels[0][1])-1))
+            feature_list = sorted(feature_set)
+            self.decision_trees.append(self.build_tree(tree, feature_list,
+                data_with_labels))
 
+    def build_tree(self, tree, feature_list, data_with_labels):
+        if len(feature_list) == 0:
+            return tree
+        tree.feature = feature_list[0]
+        data_with_labels_per_value = dict()
+        for data in data_with_labels:
+            feature_val = data[1][feature_list[0]]
+            if data_with_labels_per_value.get(feature_val) == None:
+                data_with_labels_per_value[feature_val] = []
+            data_with_labels_per_value[feature_val].append(data)
+        for feature_val, data in data_with_labels_per_value.iteritems():
+            tree.children[feature_val] = self.build_tree(self.DecisionTree(0),
+                    feature_list[1:], data)
+            if len(feature_list) == 1:
+                label_counts = dict()
+                for data_point in data:
+                    if label_counts.get(data_point[0]) == None:
+                        label_counts[data_point[0]] = 0
+                    label_counts[data_point[0]] += 1
+                for label, count in label_counts.iteritems():
+                    tree.children[feature_val].labels.append((label,
+                        float(count)/len(data)))
+        return tree
 
     def classifyData(self, data):
         # Check through each decision tree to get a value, and pick the mode of
@@ -250,7 +280,7 @@ def main():
 				(1, [2,3]),
     ]
     c = NaiveBayesClassifier(data_with_labels)
-    print c.classifyData([0,2])
+    print c.classifyData([1,2])
 
     c = Perceptron(data_with_labels)
     print c.classifyData([0,2])
@@ -259,9 +289,8 @@ def main():
     print c.classifyData([0,2])
 
     # Simple random forest test.
-    c = RandomForestClassifier(None)
-    for i in range(0, 10):
-        print c.classifyData([0, 0])
+    c = RandomForestClassifier(data_with_labels)
+    print c.classifyData([1,2])
 
 	
 
