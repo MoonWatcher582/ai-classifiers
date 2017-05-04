@@ -4,6 +4,8 @@ from itertools import izip
 import math
 import operator
 import random
+import feature_extract
+import sys
 
 import numpy as np
 
@@ -175,7 +177,7 @@ class RandomForestClassifier(Classifier):
 
 class Perceptron(Classifier):
 
-    # main function will convert data_with_labels from a set of 
+    # main function will convert data_with_labels from a set of
     # ndarrays to a list of (label, python list of features) tuples
     def __init__(self, data_with_labels):
         assert len(data_with_labels) > 0
@@ -184,7 +186,7 @@ class Perceptron(Classifier):
 
         self.training_set = data_with_labels
         self.labels = set([label for label, features in data_with_labels])
-		
+
         # Initialize weights and biases
         feature_size = len(data_with_labels[0][1])
         self.weight_set = {}
@@ -196,9 +198,9 @@ class Perceptron(Classifier):
         iterations = 0
         convergence = True
         while True:
-            best_guess = "" 
+            best_guess = ""
             for image_label, image_features in self.training_set:
-                best_guess = self.guessClassification(image_features) 
+                best_guess = self.guessClassification(image_features)
                 if best_guess != image_label:
                     self.update(image_features, image_label, best_guess)
                     convergence = False
@@ -208,7 +210,7 @@ class Perceptron(Classifier):
 
 
     def classifyData(self, data):
-        return self.guessClassification(data) 
+        return self.guessClassification(data)
 
 
     def guessClassification(self, features):
@@ -257,42 +259,96 @@ class KNearestNeighbors(Classifier):
         ssd = [reduce(lambda a, i: a + i**2, x, 0) for x in dx]
         # Select the label with most represented by the k-min values
         k_smallest = self.selectKSmallest(ssd)
-        # return the label that appears the most  
+        # return the label that appears the most
         count = Counter(k_smallest)
         return count.most_common(1)[0][0]
 
 
     def selectKSmallest(self, values):
-        # Return the labels with same indicies as the k smallest values 
+        # Return the labels with same indicies as the k smallest values
         A = np.array(values)
         indicies = np.argpartition(A, self.k)
         return [self.label_set[i] for i in indicies]
 
+def extract_images(directory, filename):
+    image_set = feature_extract.ImageSet(directory, filename)
+
+    # Extract images, resize, and extract hog features
+    print "File is %s/%s, whose images are %s by %s" % (image_set.directory, image_set.file_name, str(image_set.lenX), str(image_set.lenY), )
+    for img in image_set.extract_image():
+    	print "Extracting HOG features"
+    	img.generate_hog_image()
+    	image_set.add_image(img)
+
+    # Vectorize each image and add to a new matrix M
+    image_set.create_transpose_of_vectorized_images()
+
+    # Transpose the matrix M
+    return image_set.images_matrix
+
+def import_labels(label_file):
+    labels = []
+    with open(label_file) as f:
+        labels = f.readlines()
+    return [x.strip() for x in labels]
+
 def main():
-    # TODO: Feature extraction here
+    if len(sys.argv) != 6:
+        print "python classifier.py <image directory> <training data> <training labels> <test data> <test labels>"
+        return 1
+
+    # Feature extraction here
+    if sys.argv[1] not in ["facedata", "digitdata"]:
+    	print "Directory not supported"
+    	print "Must be facedata or digitdata"
+    	return
+
+    training_data = extract_images(sys.argv[1], sys.argv[2])
+    training_labels = import_labels(sys.argv[1] + "/" + sys.argv[3])
+
+    assert len(training_data) == len(training_labels)
+
+    test_data = extract_images(sys.argv[1], sys.argv[4])
+    test_labels = import_labels(sys.argv[1] + "/" + sys.argv[5])
+
+    assert len(test_data) == len(data_labels)
+
+    training_with_labels = []
+    for i in range(0, len(training_data)):
+        t = (training_labels[i], training_data[i])
+        training_with_labels.append(t)
+
     # TODO: Train classifier here.
+    bayes = NaiveBayesClassifier(training_with_labels)
+    perceptron = Perceptron(data_with_labels)
+    knn = KNearestNeighbors(data_with_labels)
+    forest = RandomForestClassifier(data_with_labels)
+
     # TODO: Classify test data here.
-    data_with_labels = [
-            (0, [0,0]),
-            (1, [2,2]),
-            (0, [1,1]),
-            (0, [0,2]),
-				(1, [2,3]),
-    ]
-    c = NaiveBayesClassifier(data_with_labels)
-    print c.classifyData([1,2])
+    bayes_correct = 0
+    perceptron_correct = 0
+    knn_correct = 0
+    forest_correct = 0
 
-    c = Perceptron(data_with_labels)
-    print c.classifyData([0,2])
+    for i in range(0, len(test_data)):
+        l = bayes.classifyData(test_data[i])
+        if l == test_labels[i]:
+            bayes_count += 1
+        l = perceptron.classifyData(test_data[i])
+        if l == test_labels[i]:
+            perceptron_count += 1
+        l = knn.classifyData(test_data[i])
+        if l == test_labels[i]:
+            knn_count += 1
+        l = forest.classifyData(test_data[i])
+        if l == test_labels[i]:
+            forest_count += 1
 
-    c = KNearestNeighbors(data_with_labels)
-    print c.classifyData([0,2])
+    print "Bayes: " + str(float(bayes_correct)/len(test_data))
+    print "Perceptron: " + str(float(perceptron_correct)/len(test_data))
+    print "KNN: " + str(float(knn)/len(test_data))
+    print "Forest: " + str(float(forest_correct)/len(test_data))
 
-    # Simple random forest test.
-    c = RandomForestClassifier(data_with_labels)
-    print c.classifyData([1,2])
-
-	
 
 if __name__ == '__main__':
     main()
