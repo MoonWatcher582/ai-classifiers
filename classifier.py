@@ -62,7 +62,8 @@ class NaiveBayesClassifier(Classifier):
             self.feature_probabilities.append(dict())
             prob_map = self.feature_probabilities[feat_num]
             for label, value_map in feature_map.iteritems():
-                self.labels.append(label)
+                if label not in self.labels:
+                    self.labels.append(label)
                 prob_map[label] = dict()
                 total_count = 0
                 for value, count in value_map.iteritems():
@@ -79,13 +80,14 @@ class NaiveBayesClassifier(Classifier):
         for label in self.labels:
             # Calculate the probabilty of each label given the observed
             # features.
-            label_prob = 1
+            label_prob = 1.0
             feat_num = 0
             for feature in data:
                 feature_prob = self.feature_probabilities[feat_num].get(label).get(feature)
                 if feature_prob == None:
                     feature_prob = self.min_probability
-                label_prob *= feature_prob
+                if feature_prob < 1:
+                    label_prob *= feature_prob
                 feat_num += 1
             probabilities.append(label_prob)
 
@@ -341,12 +343,12 @@ def main():
 
     # TODO: Train classifier here.
     print("Training bayes classifier")
-    #bayes = NaiveBayesClassifier(training_with_labels)
-    print("Training perceptron classifier")
-    perceptron = Perceptron(training_with_labels)
+    bayes = NaiveBayesClassifier(training_with_labels)
+    #print("Training perceptron classifier")
+    #perceptron = Perceptron(training_with_labels)
     print("Training k nearest neighbors classifier")
-    knn = KNearestNeighbors(training_with_labels)
-    print("Training random forest classifier")
+    #knn = KNearestNeighbors(training_with_labels)
+    #print("Training random forest classifier")
     #forest = RandomForestClassifier(training_with_labels)
 
     # TODO: Classify test data here.
@@ -359,9 +361,9 @@ def main():
     for i in range(0, len(test_data)):
         print("Classifying data point", i, "out of", len(test_data), end="\r")
         sys.stdout.flush()
-        #l = bayes.classifyData(test_data[i])
-        #if l == test_labels[i]:
-        #    bayes_correct += 1
+        l = bayes.classifyData(test_data[i])
+        if l == test_labels[i]:
+            bayes_correct += 1
         l = perceptron.classifyData(test_data[i])
         if l == test_labels[i]:
             perceptron_correct += 1
