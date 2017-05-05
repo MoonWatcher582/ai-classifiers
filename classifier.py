@@ -1,3 +1,4 @@
+from __future__ import print_function
 from collections import Counter
 from itertools import izip
 
@@ -182,7 +183,7 @@ class Perceptron(Classifier):
     def __init__(self, data_with_labels):
         assert len(data_with_labels) > 0
 
-        self.max_iterations = 50
+        self.max_iterations = 7 
 
         self.training_set = data_with_labels
         self.labels = set([label for label, features in data_with_labels])
@@ -198,6 +199,8 @@ class Perceptron(Classifier):
         iterations = 0
         convergence = True
         while True:
+            print("Perceptron training iteration " + str(iterations + 1) + "/" + str(self.max_iterations), end="\r")
+            sys.stdout.flush()
             best_guess = ""
             for image_label, image_features in self.training_set:
                 best_guess = self.guessClassification(image_features)
@@ -205,7 +208,7 @@ class Perceptron(Classifier):
                     self.update(image_features, image_label, best_guess)
                     convergence = False
             iterations += 1
-            if convergence or iterations > self.max_iterations:
+            if convergence or iterations >= self.max_iterations:
                 break
 
 
@@ -243,7 +246,7 @@ class Perceptron(Classifier):
 class KNearestNeighbors(Classifier):
 
     def __init__(self, data_with_labels):
-        self.k = 3
+        self.k = 8
         assert len(data_with_labels) > self.k
 
         self.label_set = [label for label, features in data_with_labels]
@@ -270,15 +273,24 @@ class KNearestNeighbors(Classifier):
         indicies = np.argpartition(A, self.k)
         return [self.label_set[i] for i in indicies]
 
-def extract_images(directory, filename):
+total_face_images = 451
+total_digit_images = 5000
+
+def extract_images(directory, filename, total_images=0):
+    if total_images == 0:
+		 total_images = total_face_images if directory == "facedata" else total_digit_images
+
     image_set = feature_extract.ImageSet(directory, filename)
 
     # Extract images, resize, and extract hog features
-    print "File is %s/%s, whose images are %s by %s" % (image_set.directory, image_set.file_name, str(image_set.lenX), str(image_set.lenY), )
+    print("File is %s/%s, whose images are %s by %s" % (image_set.directory, image_set.file_name, str(image_set.lenX), str(image_set.lenY), ))
+    img_count = 0
     for img in image_set.extract_image():
-    	print "Extracting HOG features"
-    	img.generate_hog_image()
-    	image_set.add_image(img)
+        img.generate_hog_image()
+        image_set.add_image(img)
+        img_count += 1
+        if img_count >= total_images:
+            break
 
     # Vectorize each image and add to a new matrix M
     image_set.create_transpose_of_vectorized_images()
@@ -286,30 +298,39 @@ def extract_images(directory, filename):
     # Transpose the matrix M
     return image_set.images_matrix
 
-def import_labels(label_file):
+def import_labels(directory, filename, total_images=0):
+    if total_images == 0:
+		 total_images = total_face_images if directory == "facedata" else total_digit_images
+
     labels = []
-    with open(label_file) as f:
+    with open(directory + "/" + filename) as f:
         labels = f.readlines()
-    return [x.strip() for x in labels]
+    return [x.strip() for x in labels][:total_images]
 
 def main():
-    if len(sys.argv) != 6:
-        print "python classifier.py <image directory> <training data> <training labels> <test data> <test labels>"
+    if len(sys.argv) != 7:
+        print("python classifier.py <image directory> <training data> <training labels> <test data> <test labels> <percent>")
         return 1
 
-    # Feature extraction here
-    if sys.argv[1] not in ["facedata", "digitdata"]:
-    	print "Directory not supported"
-    	print "Must be facedata or digitdata"
+    max_training_images = 0
+    if sys.argv[1] == "facedata":
+        max_training_images = int(float(sys.argv[6])/100 * total_face_images)
+    elif sys.argv[1] == "digitdata":
+        max_training_images = int(float(sys.argv[6])/100 * total_digit_images)
+    else:
+    	print("Directory not supported")
+    	print("Must be facedata or digitdata")
     	return
 
-    training_data = extract_images(sys.argv[1], sys.argv[2])
-    training_labels = import_labels(sys.argv[1] + "/" + sys.argv[3])
+    print("Extracting training data")
+    training_data = extract_images(sys.argv[1], sys.argv[2], total_images=max_training_images)
+    training_labels = import_labels(sys.argv[1], sys.argv[3], total_images=max_training_images)
 
     assert len(training_data) == len(training_labels)
 
+    print("Extracting testing data")
     test_data = extract_images(sys.argv[1], sys.argv[4])
-    test_labels = import_labels(sys.argv[1] + "/" + sys.argv[5])
+    test_labels = import_labels(sys.argv[1], sys.argv[5])
 
     assert len(test_data) == len(test_labels)
 
@@ -319,40 +340,43 @@ def main():
         training_with_labels.append(t)
 
     # TODO: Train classifier here.
-    print "Training bayes classifier"
-    bayes = NaiveBayesClassifier(training_with_labels)
-    print "Training perceptron classifier"
+    print("Training bayes classifier")
+    #bayes = NaiveBayesClassifier(training_with_labels)
+    print("Training perceptron classifier")
     perceptron = Perceptron(training_with_labels)
-    print "Training k nearest neighbors classifier"
+    print("Training k nearest neighbors classifier")
     knn = KNearestNeighbors(training_with_labels)
-    print "Training random forest classifier"
-    forest = RandomForestClassifier(training_with_labels)
+    print("Training random forest classifier")
+    #forest = RandomForestClassifier(training_with_labels)
 
     # TODO: Classify test data here.
+    print("Classifying test data")
     bayes_correct = 0
     perceptron_correct = 0
     knn_correct = 0
     forest_correct = 0
 
     for i in range(0, len(test_data)):
-        print "Classifying data point " + str(i) + "out of " + str(len(test_data))
-        l = bayes.classifyData(test_data[i])
-        if l == test_labels[i]:
-            bayes_count += 1
+        print("Classifying data point", i, "out of", len(test_data), end="\r")
+        sys.stdout.flush()
+        #l = bayes.classifyData(test_data[i])
+        #if l == test_labels[i]:
+        #    bayes_correct += 1
         l = perceptron.classifyData(test_data[i])
         if l == test_labels[i]:
-            perceptron_count += 1
+            perceptron_correct += 1
         l = knn.classifyData(test_data[i])
         if l == test_labels[i]:
-            knn_count += 1
-        l = forest.classifyData(test_data[i])
-        if l == test_labels[i]:
-            forest_count += 1
+            knn_correct += 1
+        #l = forest.classifyData(test_data[i])
+        #if l == test_labels[i]:
+        #    forest_correct += 1
 
-    print "Bayes: " + str(float(bayes_correct)/len(test_data))
-    print "Perceptron: " + str(float(perceptron_correct)/len(test_data))
-    print "KNN: " + str(float(knn)/len(test_data))
-    print "Forest: " + str(float(forest_correct)/len(test_data))
+    print("")
+    print("Bayes:", float(bayes_correct)/len(test_data))
+    print("Perceptron:", float(perceptron_correct)/len(test_data))
+    print("KNN:", float(knn_correct)/len(test_data))
+    print("Forest:", float(forest_correct)/len(test_data))
 
 
 if __name__ == '__main__':

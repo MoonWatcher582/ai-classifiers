@@ -5,7 +5,6 @@ from skimage import exposure
 def arrayToNdArray(arr, lenX, lenY):
 	if len(arr) < 1:
 		raise IndexError
-	print "Creating NdArray of size Y=%s by X=%s" % (str(len(arr)), str(len(arr[0])), )
 	assert len(arr) == lenY
 	assert len(arr[0]) == lenX
 	return np.ndarray(shape=(len(arr), len(arr[0])), buffer=np.array(arr))

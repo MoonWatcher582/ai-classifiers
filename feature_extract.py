@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 
 import numpy as np
@@ -31,7 +32,6 @@ class Image(object):
 
 class ImageSet(object):
 	def __init__(self, directory, file_name):
-		print "Initializing with %s/%s" % (directory, file_name)
 		self.images = []
 		self.directory = directory
 		self.file_name = file_name
@@ -56,15 +56,16 @@ class ImageSet(object):
 			}
 			current_image = []
 			line_count = 1
-			img_count = 0
+			img_count = 1
 			for line in f:
 				current_image.append([value_map.get(x, 0) if x in ['#', '+'] else 0 for x in line[:-1]])
 
 				if line_count % self.lenY == 0:
+					print("Extracted image " + str(img_count), end="\r")
+					sys.stdout.flush()
+					img_count += 1
 					image = utils.arrayToNdArray(current_image, self.lenX, self.lenY)
 					if image is not None:
-						print "Completed image " + str(img_count)
-						img_count += 1
 						yield Image(image)
 					current_image = []
 
@@ -91,25 +92,23 @@ class ImageSet(object):
 
 def main():
 	if len(sys.argv) != 3 and len(sys.argv) != 4:
-		print "python feature_extract.py <image directory> <ascii image file>"
+		print("python feature_extract.py <image directory> <ascii image file>")
 		return
 
 	if sys.argv[1] not in ["facedata", "digitdata"]:
-		print "Directory not supported"
-		print "Must be facedata or digitdata"
+		print("Directory not supported")
+		print("Must be facedata or digitdata")
 		return
 
 	image_set = ImageSet(sys.argv[1], sys.argv[2])
 
 	# Extract images, resize, and extract hog features
-	print "File is %s/%s, whose images are %s by %s" % (image_set.directory, image_set.file_name, str(image_set.lenX), str(image_set.lenY), )
 	for img in image_set.extract_image():
-		print "Extracting HOG features"
 		img.generate_hog_image()
 		image_set.add_image(img)
 
 		if len(sys.argv) == 4 and sys.argv[3] == "visualize":
-			print "Beginning visualization"
+			print("Beginning visualization")
 			utils.display_images(img.image_resize, img.hog_image)
 		break
 
