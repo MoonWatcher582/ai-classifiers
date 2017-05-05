@@ -311,7 +311,7 @@ def main():
     test_data = extract_images(sys.argv[1], sys.argv[4])
     test_labels = import_labels(sys.argv[1] + "/" + sys.argv[5])
 
-    assert len(test_data) == len(data_labels)
+    assert len(test_data) == len(test_labels)
 
     training_with_labels = []
     for i in range(0, len(training_data)):
@@ -319,10 +319,14 @@ def main():
         training_with_labels.append(t)
 
     # TODO: Train classifier here.
+    print "Training bayes classifier"
     bayes = NaiveBayesClassifier(training_with_labels)
-    perceptron = Perceptron(data_with_labels)
-    knn = KNearestNeighbors(data_with_labels)
-    forest = RandomForestClassifier(data_with_labels)
+    print "Training perceptron classifier"
+    perceptron = Perceptron(training_with_labels)
+    print "Training k nearest neighbors classifier"
+    knn = KNearestNeighbors(training_with_labels)
+    print "Training random forest classifier"
+    forest = RandomForestClassifier(training_with_labels)
 
     # TODO: Classify test data here.
     bayes_correct = 0
@@ -331,6 +335,7 @@ def main():
     forest_correct = 0
 
     for i in range(0, len(test_data)):
+        print "Classifying data point " + str(i) + "out of " + str(len(test_data))
         l = bayes.classifyData(test_data[i])
         if l == test_labels[i]:
             bayes_count += 1
