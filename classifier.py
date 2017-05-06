@@ -112,14 +112,17 @@ class RandomForestClassifier(Classifier):
 
         assert len(data_with_labels) > 0
 
+        #num_features = int(math.sqrt(len(data_with_labels[0][1])))
+        num_features = 10
         num_trees = int(math.sqrt(len(data_with_labels[0][1])))
         for i in range(0, num_trees):
             tree = self.DecisionTree(0)
             feature_set = set()
-            while len(feature_set) < num_trees:
+            while len(feature_set) < num_features:
                 feature_set.add(random.randint(0,
                     len(data_with_labels[0][1])-1))
             feature_list = sorted(feature_set)
+            print("Building tree", i, "out of ", num_trees)
             self.decision_trees.append(self.build_tree(tree, feature_list,
                 data_with_labels))
 
@@ -154,7 +157,7 @@ class RandomForestClassifier(Classifier):
         for tree in self.decision_trees:
             for i in range (0, len(data)):
                 assert tree.feature >= i
-                if tree.feature < i:
+                if tree.feature > i:
                     continue
                 tree = tree.children.get(data[i])
                 if tree == None:
@@ -175,6 +178,8 @@ class RandomForestClassifier(Classifier):
                 decisions[label] = 0
             decisions[label] += 1
 
+        if len(decisions) == 0:
+            return None
         return max(decisions.iteritems(), key=operator.itemgetter(1))[0]
 
 
@@ -344,12 +349,12 @@ def main():
     # TODO: Train classifier here.
     print("Training bayes classifier")
     bayes = NaiveBayesClassifier(training_with_labels)
-    #print("Training perceptron classifier")
-    #perceptron = Perceptron(training_with_labels)
-    print("Training k nearest neighbors classifier")
-    #knn = KNearestNeighbors(training_with_labels)
-    #print("Training random forest classifier")
-    #forest = RandomForestClassifier(training_with_labels)
+    print("Training perceptron classifier")
+    perceptron = Perceptron(training_with_labels)
+    rint("Training k nearest neighbors classifier")
+    knn = KNearestNeighbors(training_with_labels)
+    rint("Training random forest classifier")
+    forest = RandomForestClassifier(training_with_labels)
 
     # TODO: Classify test data here.
     print("Classifying test data")
@@ -370,9 +375,9 @@ def main():
         l = knn.classifyData(test_data[i])
         if l == test_labels[i]:
             knn_correct += 1
-        #l = forest.classifyData(test_data[i])
-        #if l == test_labels[i]:
-        #    forest_correct += 1
+        l = forest.classifyData(test_data[i])
+        if l == test_labels[i]:
+            forest_correct += 1
 
     print("")
     print("Bayes:", float(bayes_correct)/len(test_data))
