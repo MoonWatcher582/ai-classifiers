@@ -5,10 +5,12 @@ from itertools import izip
 import math
 import operator
 import random
-import feature_extract
 import sys
+import time
 
 import numpy as np
+
+import feature_extract
 
 # An interface for all classifiers to implement.
 class Classifier():
@@ -348,13 +350,21 @@ def main():
 
     # TODO: Train classifier here.
     print("Training bayes classifier")
+    start_training = time.time()
     bayes = NaiveBayesClassifier(training_with_labels)
+    print("Naive bayes training took", (time.time() - start_training) * 1000, "ms")
     print("Training perceptron classifier")
+    start_training = time.time()
     perceptron = Perceptron(training_with_labels)
-    rint("Training k nearest neighbors classifier")
+    print("Perceptron training took", (time.time() - start_training) * 1000, "ms")
+    print("Training k nearest neighbors classifier")
+    start_training = time.time()
     knn = KNearestNeighbors(training_with_labels)
-    rint("Training random forest classifier")
+    print("k-NN training took", (time.time() - start_training) * 1000, "ms")
+    print("Training random forest classifier")
+    start_training = time.time()
     forest = RandomForestClassifier(training_with_labels)
+    print("Random forest training took", (time.time() - start_training) * 1000, "ms")
 
     # TODO: Classify test data here.
     print("Classifying test data")
