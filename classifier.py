@@ -383,7 +383,6 @@ def main():
         l = perceptron.classifyData(test_data[i])
         if l == test_labels[i]:
             perceptron_correct += 1
-        print("test data is", test_labels[i])
         l = knn.classifyData(test_data[i])
         if l == test_labels[i]:
             knn_correct += 1
