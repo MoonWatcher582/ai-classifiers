@@ -257,7 +257,7 @@ class Perceptron(Classifier):
 class KNearestNeighbors(Classifier):
 
     def __init__(self, data_with_labels):
-        self.k = 8
+        self.k = 10
         assert len(data_with_labels) > self.k
 
         self.label_set = [label for label, features in data_with_labels]
@@ -270,7 +270,7 @@ class KNearestNeighbors(Classifier):
         # Subtract training data from the data, pairwise
         dx = [np.subtract(data, train) for train in self.feature_set]
         # Compute square sum for each difference vector
-        ssd = [reduce(lambda a, i: a + i**2, x, 0) for x in dx]
+        ssd = [math.sqrt(reduce(lambda a, i: a + i**2, x, 0)) for x in dx]
         # Select the label with most represented by the k-min values
         k_smallest = self.selectKSmallest(ssd)
         # return the label that appears the most
@@ -281,7 +281,7 @@ class KNearestNeighbors(Classifier):
     def selectKSmallest(self, values):
         # Return the labels with same indicies as the k smallest values
         A = np.array(values)
-        indicies = np.argpartition(A, self.k)
+        indicies = np.argpartition(A, self.k)[:self.k]
         return [self.label_set[i] for i in indicies]
 
 total_face_images = 451
