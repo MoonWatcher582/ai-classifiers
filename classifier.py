@@ -34,7 +34,7 @@ class NaiveBayesClassifier(Classifier):
         # If we have no data, we don't know anything about the features.
         assert len(data_with_labels) > 0
 
-        self.min_probability = 0.5
+        self.min_probability = 0.1
         self.labels = []
 
         # This is a list of maps. Each entry in the list for the given feature
@@ -61,6 +61,9 @@ class NaiveBayesClassifier(Classifier):
                 feature_map[label][feature] += 1
 
             # Convert counts to probabilities.
+            # Note: we assume uniform distribution (which was confirmed by
+            # looking at the training data), so P(L) is not used. We tried
+            # adding it before but it didn't change the results.
             self.feature_probabilities.append(dict())
             prob_map = self.feature_probabilities[feat_num]
             for label, value_map in feature_map.iteritems():
@@ -72,9 +75,9 @@ class NaiveBayesClassifier(Classifier):
                     total_count += count
                 for value, count in value_map.iteritems():
                     probability = float(count)/total_count
+                    if probability < self.min_probability:
+                        probabiltity = self.min_probability
                     prob_map[label][value] = probability
-                    if probability / 2 < self.min_probability:
-                        self.min_probability = probability / 2
 
 
     def classifyData(self, data):
@@ -88,8 +91,7 @@ class NaiveBayesClassifier(Classifier):
                 feature_prob = self.feature_probabilities[feat_num].get(label).get(feature)
                 if feature_prob == None:
                     feature_prob = self.min_probability
-                if feature_prob < 1:
-                    label_prob *= feature_prob
+                label_prob *= math.log(feature_prob)
                 feat_num += 1
             probabilities.append(label_prob)
 
@@ -124,7 +126,7 @@ class RandomForestClassifier(Classifier):
                 feature_set.add(random.randint(0,
                     len(data_with_labels[0][1])-1))
             feature_list = sorted(feature_set)
-            print("Building tree", i, "out of ", num_trees)
+            print("Building tree", i, "out of ", num_trees, end='\r')
             self.decision_trees.append(self.build_tree(tree, feature_list,
                 data_with_labels))
 
